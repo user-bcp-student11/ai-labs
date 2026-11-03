@@ -1,0 +1,27 @@
+# post-api-tasks.sequence
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Router as FastAPI Router
+    participant Sec as legacy_identity
+    participant Svc as RequirementService
+    participant Repo as TaskRepository
+    participant DB as SQLite
+
+    Client->>Router: POST /api/tasks + TaskCreateRequest
+    Router->>Sec: Validate Authorization header
+    Sec-->>Router: Identity(username, role)
+    Router->>Svc: create_task(payload, identity)
+    Svc->>Svc: resolve owner from payload/identity
+    Svc->>Svc: _authorized_owner(...)
+    Svc->>Repo: create(task, authorized_owner)
+    Repo->>DB: INSERT task
+    Repo->>DB: SELECT created task by id
+    DB-->>Repo: created row
+    Repo-->>Svc: created row
+    Svc->>Svc: _as_task(row)
+    Svc-->>Router: TaskResponse
+    Router-->>Client: 201 Created + TaskResponse
+
+```

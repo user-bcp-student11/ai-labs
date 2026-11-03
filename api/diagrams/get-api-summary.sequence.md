@@ -1,0 +1,25 @@
+# get-api-summary.sequence
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Router as FastAPI Router
+    participant Sec as legacy_identity
+    participant Svc as RequirementService
+    participant Repo as TaskRepository
+    participant DB as SQLite
+
+    Client->>Router: GET /api/summary?owner=...
+    Router->>Sec: Validate Authorization header
+    Sec-->>Router: Identity(username, role)
+    Router->>Svc: summarize(owner, identity)
+    Svc->>Svc: _authorized_owner(...)
+    Svc->>Repo: summary_rows(requested_owner)
+    Repo->>DB: SELECT status,priority by owner
+    DB-->>Repo: rows
+    Repo-->>Svc: rows
+    Svc->>Svc: aggregate byStatus and highPriorityOpen
+    Svc-->>Router: SummaryResponse
+    Router-->>Client: 200 OK + SummaryResponse
+
+```

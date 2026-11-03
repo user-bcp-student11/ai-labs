@@ -1,0 +1,9 @@
+flowchart LR
+    A[Client] --> B[FastAPI Router\nGET /api/summary]
+    B --> C[Security Dependency\nlegacy_identity]
+    B --> D[RequirementService.summarize]
+    D --> E[_authorized_owner]
+    D --> F[TaskRepository.summary_rows]
+    F --> G[(SQLite tasks)]
+    D --> H[SummaryResponse builder]
+    H --> I[SummaryResponse]

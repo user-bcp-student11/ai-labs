@@ -1,0 +1,20 @@
+sequenceDiagram
+    actor Client
+    participant Router as FastAPI Router
+    participant Sec as legacy_identity
+    participant Svc as RequirementService
+    participant Auth as Auth Health Endpoint
+
+    Client->>Router: GET /api/backend-health
+    Router->>Sec: Validate Authorization header
+    Sec-->>Router: Identity(username, role)
+    Router->>Svc: backend_health(identity)
+    Svc->>Svc: read AUTH_HEALTH_URL config
+    Svc->>Auth: HTTP GET health endpoint
+    alt upstream reachable
+        Auth-->>Svc: status + body
+        Svc-->>Router: BackendHealthResponse(status, body)
+    else upstream error/timeout
+        Svc-->>Router: BackendHealthResponse(status=0, body=failure message)
+    end
+    Router-->>Client: 200 OK + BackendHealthResponse

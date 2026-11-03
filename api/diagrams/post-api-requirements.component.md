@@ -1,0 +1,14 @@
+# post-api-requirements.component
+
+```mermaid
+flowchart LR
+    A[Client] --> B[FastAPI Router\nPOST /api/requirements]
+    B --> C[Security Dependency\nlegacy_identity]
+    B --> D[RequirementService.upload_requirement]
+    D --> E[Read UploadFile content]
+    D --> F[Write file to upload_dir]
+    F --> G[(Filesystem uploads)]
+    D --> H[RequirementUploadResponse builder]
+    H --> I[RequirementUploadResponse]
+
+```
