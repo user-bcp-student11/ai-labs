@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -10,11 +12,24 @@ class Identity(ApiModel):
     role: str
 
 
+class TaskStatus(StrEnum):
+    TODO = "TODO"
+    IN_PROGRESS = "IN_PROGRESS"
+    DONE = "DONE"
+    ARCHIVED = "ARCHIVED"
+
+
+class TaskPriority(StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+
 class TaskCreateRequest(ApiModel):
     title: str = ""
     description: str = ""
-    status: str = "TODO"
-    priority: str = "MEDIUM"
+    status: TaskStatus = TaskStatus.TODO
+    priority: TaskPriority = TaskPriority.MEDIUM
     owner: str | None = None
 
 

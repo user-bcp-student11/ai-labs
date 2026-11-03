@@ -37,9 +37,9 @@ Accept: application/json
 | `id` | integer | Identificador de la tarea. |
 | `title` | string | Título. |
 | `description` | string | Descripción. |
-| `status` | string | Estado almacenado; el código no restringe sus valores a un enum. |
+| `status` | string | Estado almacenado. Las nuevas tareas aceptan `TODO`, `IN_PROGRESS`, `DONE` o `ARCHIVED`; valores legacy se devuelven sin alteración. |
 | `owner` | string | Username propietario. |
-| `priority` | string | Prioridad almacenada; el código no restringe sus valores a un enum. |
+| `priority` | string | Prioridad almacenada. Las nuevas tareas aceptan `LOW`, `MEDIUM` o `HIGH`; valores legacy se devuelven sin alteración. |
 | `createdAt` | string | Fecha y hora de creación serializada por SQLite. |
 
 Ejemplo de respuesta con las dos tareas semilla del usuario `student`:
@@ -89,8 +89,8 @@ Ejemplo de respuesta con las dos tareas semilla del usuario `student`:
 |---|---|---|---|
 | `title` (body) | string | No | Título; default `""`. |
 | `description` (body) | string | No | Descripción; default `""`. |
-| `status` (body) | string | No | Estado; default `"TODO"`. No hay enum declarado. |
-| `priority` (body) | string | No | Prioridad; default `"MEDIUM"`. No hay enum declarado. |
+| `status` (body) | string | No | Estado exacto de `TODO`, `IN_PROGRESS`, `DONE` o `ARCHIVED`; default `"TODO"`. |
+| `priority` (body) | string | No | Prioridad exacta de `LOW`, `MEDIUM` o `HIGH`; default `"MEDIUM"`. |
 | `owner` (body) | string o null | No | Propietario opcional. Si se envía distinto de la identidad, se rechaza con `403`. |
 | `Authorization` (header) | string | Sí | Credencial requerida por la dependencia de identidad. |
 
@@ -138,7 +138,7 @@ Ejemplo de respuesta:
 |---|---|---|
 | `401 Unauthorized` | Header ausente o token inválido. | `{"detail":"Invalid token"}` |
 | `403 Forbidden` | El campo `owner` solicita una identidad distinta a la autenticada. | `{"detail":"Not authorized to access this owner"}` |
-| `422 Unprocessable Entity` | El JSON no cumple el modelo; por ejemplo, el body no es un objeto. | `{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":[]}]}` |
+| `422 Unprocessable Entity` | El JSON no cumple el modelo; por ejemplo, el body no es un objeto o `status`/`priority` no coincide exactamente con un valor permitido. | `{"detail":[{"type":"model_attributes_type","loc":["body"],"msg":"Input should be a valid dictionary or object to extract fields from","input":[]}]}` |
 | `500 Internal Server Error` | Posible fallo no capturado al persistir o serializar. La aplicación no define un cuerpo propio; el ejemplo del middleware ASGI predeterminado no es contrato estable. | `Internal Server Error` (texto plano) |
 
 6. **Notas de seguridad:** `owner` nunca debe usarse para asignar tareas a otra identidad; el servicio exige que coincida con el username extraído del token. Esa comprobación no protege frente a falsificación del token legacy. El campo `role` del token no se usa para autorizar esta operación. H-API-01 y H-API-02 siguen pendientes.
@@ -171,7 +171,7 @@ Accept: application/json
 |---|---|---|
 | `owner` | string | Username cuyo conjunto de tareas se resumió. |
 | `total` | integer | Cantidad total de tareas del propietario. |
-| `byStatus` | object con valores integer | Conteo de tareas agrupado por cada valor de `status` almacenado. |
+| `byStatus` | object con valores integer | Conteo de tareas agrupado por cada valor de `status` almacenado; valores legacy se mantienen con su valor original. |
 | `highPriorityOpen` | integer | Tareas con `priority` `HIGH` cuyo estado no es `DONE` ni `ARCHIVED`. |
 
 Ejemplo con las tareas semilla de `student`:

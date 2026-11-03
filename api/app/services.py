@@ -13,13 +13,15 @@ from app.schemas import (
     RequirementUploadResponse,
     SummaryResponse,
     TaskCreateRequest,
+    TaskPriority,
     TaskResponse,
+    TaskStatus,
 )
 
 LOGGER = logging.getLogger(__name__)
 DEFAULT_AUTH_HEALTH_URL = "http://localhost:8080/q/health"
 AUTH_HEALTH_TIMEOUT_SECONDS = 3.0
-COMPLETED_TASK_STATUSES = frozenset({"DONE", "ARCHIVED"})
+COMPLETED_TASK_STATUSES = frozenset({TaskStatus.DONE, TaskStatus.ARCHIVED})
 
 
 class RequirementService:
@@ -45,7 +47,7 @@ class RequirementService:
         for row in rows:
             status = row["status"]
             by_status[status] = by_status.get(status, 0) + 1
-            if row["priority"] == "HIGH" and status not in COMPLETED_TASK_STATUSES:
+            if row["priority"] == TaskPriority.HIGH and status not in COMPLETED_TASK_STATUSES:
                 high_priority_open += 1
         return SummaryResponse(
             owner=requested_owner,

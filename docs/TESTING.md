@@ -14,12 +14,16 @@ Componente cubierto: `api`. La matriz sigue las cinco rutas y los estados de éx
 | `GET /api/tasks` | Solicitar otro `owner` | Error | `403`; `{"detail":"Not authorized to access this owner"}`. |
 | `GET /api/tasks` | Error de SQLite inyectado | Error interno | `500`; cuerpo no contractual, no se aserta. |
 | `POST /api/tasks` | Crear con campos válidos | Camino feliz | `201`; objeto de tarea y defaults comprobados. |
+| `POST /api/tasks` | Valores permitidos de `status` y `priority` | Camino feliz | `201`; valores exactos del catálogo aparecen en la respuesta. |
+| `POST /api/tasks` | `status` o `priority` desconocidos, con casing/espacios distintos o vacíos | Error de validación | `422`; campo identificado en el error y ninguna tarea creada. |
 | `POST /api/tasks` | JSON vacío | Borde | `201`; defaults `title=""`, `description=""`, `status="TODO"`, `priority="MEDIUM"` y owner autenticado. |
 | `POST /api/tasks` | Sin `Authorization` | Error | `401`; `{"detail":"Invalid token"}`. |
 | `POST /api/tasks` | Override de `owner` | Error | `403`; `{"detail":"Not authorized to access this owner"}`. |
 | `POST /api/tasks` | Body JSON que no es objeto | Error | `422`; detalle Pydantic observado para `[]`. |
 | `POST /api/tasks` | Error SQLite al crear | Error interno | `500`; cuerpo no contractual, no se aserta. |
 | `GET /api/summary` | Resumen con tareas | Camino feliz | `200`; `total`, `byStatus` y `highPriorityOpen` comprobados. |
+| `GET /api/summary` | Estados `DONE` y `ARCHIVED` de prioridad `HIGH` | Regla de dominio | `200`; no se cuentan en `highPriorityOpen`. |
+| `GET /api/tasks` y `GET /api/summary` | Valores legacy fuera del catálogo | Compatibilidad | `200`; el listado los conserva y el resumen los agrupa por el estado almacenado. |
 | `GET /api/summary` | Usuario sin tareas | Borde | `200`; `total=0`, `byStatus={}`, `highPriorityOpen=0`. |
 | `GET /api/summary` | Sin `Authorization` | Error | `401`; `{"detail":"Invalid token"}`. |
 | `GET /api/summary` | Solicitar otro `owner` | Error | `403`; `{"detail":"Not authorized to access this owner"}`. |
@@ -35,7 +39,7 @@ Componente cubierto: `api`. La matriz sigue las cinco rutas y los estados de éx
 | `GET /api/backend-health` | Sin `Authorization` | Error | `401`; `{"detail":"Invalid token"}`. |
 | `GET /api/backend-health` | Excepción no capturada inyectada | Error interno | `500`; cuerpo no contractual, no se aserta. |
 
-Además, se conservan las pruebas de SQL con comillas (`H-API-03`), las pruebas del contrato a través de rutas y capas (`H-API-06`) y las pruebas de validación/modelos y errores genéricos (`H-API-07`). El rechazo de `owner` se prueba como comportamiento actual; no se cuenta como cierre de una autorización basada en identidad firmada.
+Además, se conservan las pruebas de SQL con comillas (`H-API-03`), las pruebas del contrato a través de rutas y capas (`H-API-06`), las pruebas de validación/modelos y errores genéricos (`H-API-07`) y las pruebas del catálogo aprobado y lectura de valores legacy (`H-API-09`). El rechazo de `owner` se prueba como comportamiento actual; no se cuenta como cierre de una autorización basada en identidad firmada.
 
 ## Código de los tests
 

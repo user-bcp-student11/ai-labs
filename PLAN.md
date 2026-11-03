@@ -6,7 +6,7 @@ Estado: aprobado según confirmación del usuario el 2026-11-02; implementación
 
 ### Límites y secuencia
 
-- No existe `docs/ENDPOINTS.md`. Mantener las cinco rutas y sus métodos, los códigos/campos de las respuestas exitosas y los defaults observados en `HALLAZGOS.md`.
+- Mantener las cinco rutas y sus métodos, los códigos/campos de las respuestas exitosas y los defaults observados en `docs/ENDPOINTS.md` y `HALLAZGOS.md`.
 - La autorización por identidad, el rechazo de tokens inválidos, los errores genéricos y el rechazo de archivos inseguros son cambios intencionales respecto al comportamiento inseguro observado y quedan aprobados como parte de este plan. Registrar en el contrato los estados/cuerpos de error y los criterios de aceptación de archivos acordados antes de implementar esos cambios.
 - Escribir primero en `api/tests/test_api.py` las caracterizaciones de los flujos válidos y sus respuestas. Luego extraer capas sin cambiar esos resultados; aplicar después las correcciones de SQL y autorización. Tratar JWT como bloqueado hasta acordar el contrato con el emisor externo, sin leer ni modificar otros componentes. Acordar también allowlist de extensiones y tamaño máximo antes de implementar la carga segura.
 - Preservar la factoría `create_app(db_path, upload_dir)` para aislar SQLite y archivos en pruebas. Usar secretos ficticios solo en pruebas; ningún secreto real en código o evidencias.
@@ -70,6 +70,13 @@ Estado: aprobado según confirmación del usuario el 2026-11-02; implementación
 - **Archivos a tocar:** nuevo `api/app/schemas.py`; `api/app/services.py`, `api/app/routes.py` y `api/app/security.py` según H-API-06/H-API-01; `api/tests/test_api.py`.
 - **Caracterización previa:** verificar defaults actuales de creación, claves y tipos de todas las respuestas exitosas, reglas actuales del resumen y estado `401` para token inválido. Añadir casos de entrada válida y malformada; preservar la forma exitosa y confirmar con revisión humana cualquier cambio de errores detallados a mensaje genérico.
 
+### H-API-09 — Dominio de estado y prioridad
+
+- **Decisiones aprobadas:** `status`: `TODO`, `IN_PROGRESS`, `DONE`, `ARCHIVED`; `priority`: `LOW`, `MEDIUM`, `HIGH`. La coincidencia es exacta y los valores fuera de catálogo se rechazan con `422`. Los registros legacy se conservan en listados y agregados.
+- **Cambio:** declarar los dominios en el modelo de API, usar esos tipos en el resumen y persistir sus valores string. Mantener el esquema SQLite sin migración; conservar los valores legacy ya almacenados en las respuestas y el conteo `byStatus`.
+- **Archivos a tocar:** `api/app/schemas.py`, `api/app/services.py`, `api/app/repositories.py`, `api/tests/test_api.py`, `docs/ENDPOINTS.md`, `docs/TESTING.md` y las evidencias de `HALLAZGOS.md`.
+- **Caracterización y regresión:** probar cada valor permitido, desconocidos/casing/espacios/vacíos con respuesta `422`, defaults actuales, exclusión de estados cerrados en `highPriorityOpen` y lectura/resumen de valores legacy. No alterar rutas ni formas de respuesta.
+
 ## Verificación prevista
 
 Después de implementar cada bloque aprobado, ejecutar pruebas desde `api/` con `python -m pytest`; para cobertura, usar `python -m pytest --cov=app --cov-report=term-missing`. Registrar resultados reales por componente e IDs en `docs/TESTING.md` cuando ese artefacto se cree. No cambiar el umbral de cobertura; revisar el código modificado frente a la meta del 85% y mantener visibles fallos o verificaciones no ejecutadas.
@@ -87,3 +94,5 @@ Después de implementar cada bloque aprobado, ejecutar pruebas desde `api/` con 
 - 2026-11-02 — componente `api`, IDs H-API-01 a H-API-07: `python -m pytest --cov=app --cov-report=term-missing`: **13 passed**, cobertura total **99%** (188 statements, 1 missed); `app/security.py` quedó en 90%. Dos warnings de deprecación de `starlette.testclient`/`httpx` y `anyio` permanecen visibles.
 - H-API-01 y H-API-04 siguen pendientes. H-API-01 requiere acuerdo externo del contrato JWT; H-API-04 requiere acordar allowlist y tamaño. No se modificaron esos flujos ni se afirmaron sus correcciones.
 - Revisión local 2026-11-02 — componente `api`, H-API-02 reabierto: las rutas rechazan `owner` distinto, pero `identity.username` aún se deriva del token Base64 sin firma de H-API-01 (`api/app/security.py:10,14-24`). Las pruebas `api/tests/test_api.py:82-100` usan la misma fixture legacy y no acreditan una identidad confiable. Mantener H-API-02 `Pendiente` hasta verificar JWT y repetir autorización con identidades firmadas.
+- 2026-11-03 — componente `api`, H-API-09: baseline `python tools/lab.py test api`, **30 passed**, cobertura **100%**. Antes de validar el catálogo, las ocho pruebas de valores inválidos fallaron como se esperaba porque la API los aceptaba; los otros 14 casos dirigidos pasaron.
+- 2026-11-03 — componente `api`, H-API-09: después del cambio, pruebas dirigidas de catálogos, rechazo, resumen y valores legacy: **22 passed**; suite final `python tools/lab.py test api`: **52 passed**, cobertura **100%** (198 statements), con dos warnings de deprecación visibles.

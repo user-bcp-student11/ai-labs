@@ -90,6 +90,101 @@ def test_creates_task_and_summary(tmp_path: Path) -> None:
     assert summary.json()["total"] == 3
 
 
+@pytest.mark.parametrize("status", ["TODO", "IN_PROGRESS", "DONE", "ARCHIVED"])
+@pytest.mark.parametrize("priority", ["LOW", "MEDIUM", "HIGH"])
+def test_create_task_accepts_approved_status_and_priority_values(
+    status: str, priority: str, tmp_path: Path
+) -> None:
+    app = create_app(str(tmp_path / "workshop.db"), str(tmp_path / "uploads"))
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/tasks",
+            headers=headers(),
+            json={"title": "Catalog task", "status": status, "priority": priority},
+        )
+
+    assert response.status_code == 201
+    assert response.json()["status"] == status
+    assert response.json()["priority"] == priority
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        pytest.param("status", "UNKNOWN", id="unknown-status"),
+        pytest.param("status", "todo", id="lowercase-status"),
+        pytest.param("status", "TODO ", id="padded-status"),
+        pytest.param("status", "", id="empty-status"),
+        pytest.param("priority", "URGENT", id="unknown-priority"),
+        pytest.param("priority", "high", id="lowercase-priority"),
+        pytest.param("priority", "HIGH ", id="padded-priority"),
+        pytest.param("priority", "", id="empty-priority"),
+    ],
+)
+def test_create_task_rejects_values_outside_approved_catalog(
+    field: str, value: str, tmp_path: Path
+) -> None:
+    app = create_app(str(tmp_path / "workshop.db"), str(tmp_path / "uploads"))
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/tasks",
+            headers=headers(),
+            json={field: value},
+        )
+        stored_count = app.state.connection.execute(
+            "SELECT COUNT(*) AS total FROM tasks WHERE owner=?", ("student",)
+        ).fetchone()["total"]
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", field]
+    assert stored_count == 2
+
+
+def test_summary_preserves_legacy_status_and_priority_values(tmp_path: Path) -> None:
+    app = create_app(str(tmp_path / "workshop.db"), str(tmp_path / "uploads"))
+    app.state.connection.execute(
+        "INSERT INTO tasks(title,description,status,owner,priority,created_at) "
+        "VALUES (?,?,?,?,?,?)",
+        ("Legacy task", "", "LEGACY_STATUS", "student", "LEGACY_PRIORITY", "2020-01-01 00:00:00"),
+    )
+    app.state.connection.commit()
+
+    with TestClient(app) as client:
+        tasks = client.get("/api/tasks", headers=headers())
+        summary = client.get("/api/summary", headers=headers())
+
+    legacy_task = next(task for task in tasks.json() if task["title"] == "Legacy task")
+    assert legacy_task["status"] == "LEGACY_STATUS"
+    assert legacy_task["priority"] == "LEGACY_PRIORITY"
+    assert summary.json()["byStatus"]["LEGACY_STATUS"] == 1
+    assert summary.json()["highPriorityOpen"] == 1
+
+
+def test_summary_excludes_approved_closed_statuses_from_high_priority_open(
+    tmp_path: Path,
+) -> None:
+    app = create_app(str(tmp_path / "workshop.db"), str(tmp_path / "uploads"))
+    with TestClient(app) as client:
+        for status in ("DONE", "ARCHIVED", "IN_PROGRESS"):
+            response = client.post(
+                "/api/tasks",
+                headers=headers(),
+                json={"title": f"High {status}", "status": status, "priority": "HIGH"},
+            )
+            assert response.status_code == 201
+
+        summary = client.get("/api/summary", headers=headers())
+
+    assert summary.status_code == 200
+    assert summary.json()["byStatus"] == {
+        "TODO": 1,
+        "IN_PROGRESS": 2,
+        "DONE": 1,
+        "ARCHIVED": 1,
+    }
+    assert summary.json()["highPriorityOpen"] == 2
+
+
 def test_create_task_with_empty_payload_uses_all_defaults(tmp_path: Path) -> None:
     app = create_app(str(tmp_path / "workshop.db"), str(tmp_path / "uploads"))
     with TestClient(app) as client:

@@ -44,7 +44,13 @@ class TaskRepository:
         sql = "INSERT INTO tasks(title,description,status,owner,priority,created_at) VALUES (?,?,?,?,?,datetime('now'))"
         cursor = self._connection.execute(
             sql,
-            (task.title, task.description, task.status, owner, task.priority),
+            (
+                task.title,
+                task.description,
+                task.status.value,
+                owner,
+                task.priority.value,
+            ),
         )
         self._connection.commit()
         return self._connection.execute(
