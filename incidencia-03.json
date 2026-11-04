@@ -1,0 +1,28 @@
+{
+  "case_id": "caso-03",
+  "service": "tarjetas",
+  "error_code": "DUPLICATE_DEBIT_SUSPECTED",
+  "correlation_id": "PAY-DEMO-301",
+  "first_seen": "2026-11-03T16:00:03Z",
+  "last_seen": "2026-11-03T16:00:03Z",
+  "occurrences": 1,
+  "priority": "P1",
+  "summary": "Se detectó una alerta de posible duplicidad de débito asociada al pago PAY-DEMO-301; requiere conciliación.",
+  "impact": "La revisión afecta el pago PAY-DEMO-301 y los movimientos MOV-DEMO-01 y MOV-DEMO-02 por 80.00 PEN. El log no confirma que se haya efectuado un cargo duplicado.",
+  "evidence": [
+    {
+      "file": "caso-03-cargos.log",
+      "line": 4,
+      "text": "2026-11-03T11:00:03-05:00 ERROR service=tarjetas correlation_id=PAY-DEMO-301 event_id=evt-304 code=DUPLICATE_DEBIT_SUSPECTED movement_ids=MOV-DEMO-01,MOV-DEMO-02 card=*****************003"
+    },
+    {
+      "file": "caso-03-cargos.log",
+      "line": 6,
+      "text": "2026-11-03T11:00:04-05:00 WARN service=tarjetas correlation_id=PAY-DEMO-301 event_id=evt-305 code=RECONCILIATION_PENDING message=\"No hay resultado de conciliacion disponible\""
+    }
+  ],
+  "missing_data": [
+    "El resultado de conciliación no está disponible; no se confirma si los dos movimientos representan un cargo duplicado efectivo."
+  ],
+  "recommended_action": "Conciliar manualmente MOV-DEMO-01 y MOV-DEMO-02 asociados a PAY-DEMO-301 y confirmar el resultado antes de cualquier decisión; no emitir una devolución solo por esta alerta."
+}
